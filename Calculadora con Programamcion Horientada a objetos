@@ -1,0 +1,92 @@
+using Spectre.Console;
+using System;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        var datos = CapturarDatos();
+
+        var resultados = CalcularAmortizacion(
+            datos.montoPrestamo,
+            datos.interesAnual,
+            datos.plazoPrestamo
+        );
+
+        var tabla = GenerarTabla(resultados);
+
+        MostrarResultados(tabla);
+    }
+
+    static (decimal montoPrestamo, decimal interesAnual, int plazoPrestamo) CapturarDatos()
+    {
+        Console.Write("Ingresa el monto del préstamo: ");
+        decimal montoPrestamo = decimal.Parse(Console.ReadLine()!);
+
+        Console.Write("Ingresa el interés anual (%): ");
+        decimal interesAnual = decimal.Parse(Console.ReadLine()!);
+
+        Console.Write("Ingresa el plazo del préstamo (meses): ");
+        int plazoPrestamo = int.Parse(Console.ReadLine()!);
+
+        return (montoPrestamo, interesAnual, plazoPrestamo);
+    }
+
+    static List<(int numeroCuota, decimal cuota, decimal interes, decimal abonoCapital, decimal saldo)>
+        CalcularAmortizacion(decimal montoPrestamo, decimal interesAnual, int plazoPrestamo)
+    {
+        List<(int, decimal, decimal, decimal, decimal)> lista =
+            new List<(int, decimal, decimal, decimal, decimal)>();
+
+        decimal interesMensual = (interesAnual / 12) / 100;
+
+        decimal n = (decimal)Math.Pow(1 + (double)interesMensual, plazoPrestamo);
+        decimal d = n - 1;
+
+        decimal cuotaFija = montoPrestamo * interesMensual * (n / d);
+
+        decimal saldo = montoPrestamo;
+
+        for (int i = 1; i <= plazoPrestamo; i++)
+        {
+            decimal interes = saldo * interesMensual;
+            decimal abonoCapital = cuotaFija - interes;
+            saldo -= abonoCapital;
+
+            lista.Add((i, cuotaFija, interes, abonoCapital, saldo < 0 ? 0 : saldo));
+        }
+
+        return lista;
+    }
+
+    static Table GenerarTabla(List<(int numeroCuota, decimal cuota, decimal interes, decimal abonoCapital, decimal saldo)> datos)
+    {
+        var table = new Table();
+
+        table.AddColumn("No. Cuota");
+        table.AddColumn("Pago de Cuota");
+        table.AddColumn("Interés");
+        table.AddColumn("Abono a Capital");
+        table.AddColumn("Saldo Restante");
+
+        foreach (var fila in datos)
+        {
+            table.AddRow(
+                fila.numeroCuota.ToString(),
+                fila.cuota.ToString("F2"),
+                fila.interes.ToString("F2"),
+                fila.abonoCapital.ToString("F2"),
+                fila.saldo.ToString("F2")
+            );
+        }
+
+        return table;
+    }
+
+
+    static void MostrarResultados(Table tabla)
+    {
+        AnsiConsole.Write(tabla);
+    }
+}
